@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV Interactif - Murtaza FETRAT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Teal (BG: bg-gray-100, Text: text-gray-800, Accent: text-teal-700) -->
+    <!-- Application Structure Plan: SPA updated with 'Assistant IA' section. Keeps existing structure (Home, Skills, Experience) and adds a fourth tab for LLM interactions. -->
+    <!-- Visualization & Content Choices: Added 'Assistant IA' section. 1) Chat Interface: Allows natural language query of the CV data. 2) Job Matcher: Takes user input (JD), matches against CV context, generates structured output (Letter/Score). Uses Gemini 2.5 Flash Preview. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .content-section {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .nav-link {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            color: #374151;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            background-color: #f3f4f6;
+            color: #115e59;
+        }
+        .nav-link.active-nav {
+            background-color: #0d9488;
+            color: #ffffff;
+        }
+        .skill-filter-btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: 500;
+            background-color: #e5e7eb;
+            color: #374151;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .skill-filter-btn:hover {
+            background-color: #d1d5db;
+        }
+        .skill-filter-btn.active-filter {
+            background-color: #ccfbf1;
+            color: #134e4a;
+            border-color: #0d9488;
+        }
+        .job-tab {
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: left;
+            width: 100%;
+            color: #374151;
+            background-color: #f3f4f6;
+            transition: all 0.3s ease;
+        }
+        .job-tab:hover {
+            background-color: #e5e7eb;
+            color: #115e59;
+        }
+        .job-tab.active-job {
+            background-color: #0d9488;
+            color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .job-details {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .job-details.active-job-details {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Chat UI Styles */
+        .chat-bubble {
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .chat-user {
+            background-color: #ccfbf1;
+            color: #115e59;
+            align-self: flex-end;
+            margin-left: auto;
+            border-bottom-right-radius: 2px;
+        }
+        .chat-ai {
+            background-color: #f3f4f6;
+            color: #374151;
+            align-self: flex-start;
+            border-bottom-left-radius: 2px;
+        }
+        .typing-indicator span {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: #9ca3af;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out both;
+            margin: 0 2px;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        /* Markdown styles within chat */
+        .chat-ai strong { font-weight: 700; color: #115e59; }
+        .chat-ai ul { list-style-type: disc; padding-left: 20px; margin: 5px 0; }
+        .chat-ai p { margin-bottom: 5px; }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <header class="bg-white shadow-md sticky top-0 z-50">
+        <nav class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col sm:flex-row justify-between items-center py-4 gap-4 sm:gap-0">
+                <h1 class="text-3xl font-bold text-teal-700">Murtaza FETRAT</h1>
+                <div class="flex flex-wrap justify-center gap-2 sm:gap-4">
+                    <button class="nav-link active-nav" data-target="accueil">Accueil</button>
+                    <button class="nav-link" data-target="competences">Compétences</button>
+                    <button class="nav-link" data-target="experiences">Expériences</button>
+                    <button class="nav-link" data-target="assistant">Assistant IA ✨</button>
+                </div>
+            </div>
+        </nav>
+    </header>
+    
+    <main class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+        
+        <!-- SECTION: ACCUEIL -->
+        <section id="accueil" class="content-section active">
+            
+            <p class="text-lg text-gray-700 mb-8 text-centre pt-1 max-w-3xl mx-auto ">
+                Bienvenue sur mon portfolio interactif. Cette section 'Accueil' est conçue pour vous donner un aperçu rapide de mon profil, de ma formation et de la manière de me contacter. C'est le point de départ pour découvrir mon parcours.
+            </p>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-lg">
+                    <h2 class="text-2xl font-bold text-teal-700 mb-4 border-b pb-2">Profil</h2>
+                    <div class="flex gap-3 mt-0"> 
+                        <span>
+                            <img src="./profile1.jpg" alt="avat_of_Murtaza" class="max-w-2xl max-h-80">
+                        </span>
+                        <p class="text-base text-gray-700 leading-relaxed">
+                            Développeur full-stack junior avec plus de 5 ans d'expérience en informatique, dont plus d'un an en développement web. En formation DWWB pour perfectionner mes compétences, je cherche un stage ou une collaboration afin d'apporter mes expériences et contribuer à une équipe dynamique.
+                        </p>
+                    </div>
+                </div>
+                <div class="md:col-span-1 flex flex-col gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-bold text-teal-700 mb-4 border-b pb-2">Contact</h2>
+                        <ul class="space-y-3">
+                            <li><strong>Lieu:</strong> La Rochelle, France</li>
+                            <li>
+                                <a href="tel:+33745813907" class="text-teal-600 hover:text-teal-800 hover:underline">
+                                    <strong>Tél:</strong> +33 7 45 81 39 07
+                                </a>
+                            </li>
+                            <li>
+                                <a href="mailto:murtazafetrat0012@gmail.com" class="text-teal-600 hover:text-teal-800 hover:underline break-all">
+                                    <strong>Email:</strong> murtazafetrat0012@gmail.com
+                                </a>
+                            </li>
+                            <li>
+                                <a href="https://www.linkedin.com/in/murtazafetrat0012" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:text-teal-800 hover:underline break-all">
+                                    <strong>LinkedIn:</strong> linkedin.com/in/murtazafetrat0012
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-bold text-teal-700 mb-4 border-b pb-2">Formation</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <h3 class="font-bold text-gray-900">DÉVELOPPEMENT WEB & WEB MOBILE</h3>
+                                <p class="text-sm text-gray-600">AFEC, La Rochelle, France</p>
+                                <p class="text-sm font-medium text-teal-600">2025 – en cours</p>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900">LICENCE EN GÉNIE INFORMATIQUE</h3>
+                                <p class="text-sm text-gray-600">Kaboul Polytech Université, Afghanistan</p>
+                                <p class="text-sm font-medium text-teal-600">2014 – 2018</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: COMPÉTENCES -->
+        <section id="competences" class="content-section">
+            <p class="text-lg text-gray-700 mb-8 text-center max-w-3xl mx-auto">
+                Cette section détaille mes compétences techniques. Utilisez les filtres pour explorer mes différents domaines d'expertise. Le graphique et la liste se mettront à jour dynamiquement pour se concentrer sur les technologies de chaque catégorie.
+            </p>
+            <div id="skill-filters" class="flex flex-wrap gap-2 sm:gap-3 mb-6 justify-center">
+                <button class="skill-filter-btn active-filter" data-category="tous">Toutes</button>
+                <button class="skill-filter-btn" data-category="frontend">Front-end</button>
+                <button class="skill-filter-btn" data-category="backend">Back-end</button>
+                <button class="skill-filter-btn" data-category="langages">Langages</button>
+                <button class="skill-filter-btn" data-category="outils">Outils & Design</button>
+                <button class="skill-filter-btn" data-category="systemes">Systèmes</button>
+            </div>
+            <div class="grid md:grid-cols-5 gap-6 items-start">
+                <div class="md:col-span-3 bg-white p-4 rounded-lg shadow-lg">
+                    <div class="relative w-full max-w-2xl mx-auto h-80 md:h-96">
+                        <canvas id="skillsChart"></canvas>
+                    </div>
+                </div>
+                <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-lg min-h-[300px]">
+                    <h3 class="text-xl font-bold text-teal-700 mb-4 border-b pb-2">Technologies Clés</h3>
+                    <ul id="skills-list" class="space-y-2 list-disc list-inside text-gray-700">
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: EXPÉRIENCES -->
+        <section id="experiences" class="content-section">
+            <p class="text-lg text-gray-700 mb-8 text-center max-w-3xl mx-auto">
+                Explorez mon parcours professionnel. J'ai conçu cette section comme un système d'onglets interactifs. Cliquez sur un poste pour afficher les détails, les responsabilités et les réalisations de chaque rôle.
+            </p>
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="md:col-span-1 flex md:flex-col gap-3 overflow-x-auto pb-2">
+                    <button class="job-tab active-job" data-job="benevole">Bénévole Polyvalent</button>
+                    <button class="job-tab" data-job="analyste">Analyste & Concepteur</button>
+                    <button class="job-tab" data-job="devweb">Développeur Web</button>
+                    <button class="job-tab" data-job="technicien">Technicien Informatique</button>
+                </div>
+                <div class="md:col-span-2 bg-white p-6 rounded-lg shadow-lg min-h-[300px]">
+                    <div id="job-benevole" class="job-details active-job-details">
+                        <h3 class="text-xl font-bold text-gray-900">Bénévole Polyvalent</h3>
+                        <p class="text-sm font-medium text-teal-600">Secours Populaire, La Rochelle | Mars 2025 – Présent</p>
+                        <ul class="mt-4 list-disc list-inside space-y-2 text-gray-700">
+                            <li>Accueil du public et gestion d'un petit stand.</li>
+                            <li>Travail en équipe, ponctualité, bonne communication.</li>
+                        </ul>
+                    </div>
+                    <div id="job-analyste" class="job-details">
+                        <h3 class="text-xl font-bold text-gray-900">Analyste et Concepteur de Systèmes</h3>
+                        <p class="text-sm font-medium text-teal-600">Fara Rayaneh Co, Téhéran, Iran | Mai 2023 – Déc 2024</p>
+                        <ul class="mt-4 list-disc list-inside space-y-2 text-gray-700">
+                            <li>Analyse des besoins métiers et déploiement d'applications.</li>
+                            <li>Conception de systèmes et résolution de bugs.</li>
+                        </ul>
+                    </div>
+                    <div id="job-devweb" class="job-details">
+                        <h3 class="text-xl font-bold text-gray-900">Développeur Web</h3>
+                        <p class="text-sm font-medium text-teal-600">Hosh Zareen Co, Kaboul, Afghanistan | Août 2021 – Jan 2023</p>
+                        <ul class="mt-4 list-disc list-inside space-y-2 text-gray-700">
+                            <li>Création d'applications web avec HTML, CSS, JS, Python.</li>
+                            <li>Optimisation de l'expérience utilisateur.</li>
+                        </ul>
+                    </div>
+                    <div id="job-technicien" class="job-details">
+                        <h3 class="text-xl font-bold text-gray-900">Technicien Informatique</h3>
+                        <p class="text-sm font-medium text-teal-600">Autre Expérience | +4 ans</p>
+                        <ul class="mt-4 list-disc list-inside space-y-2 text-gray-700">
+                            <li>Diagnostic et maintenance de systèmes et réseaux.</li>
+                            <li>Installation de caméras de surveillance et serveurs.</li>
+                            <li>Support logiciel et maintenance de base de données.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: ASSISTANT IA -->
+        <section id="assistant" class="content-section">
+            <p class="text-lg text-gray-700 mb-8 text-center max-w-3xl mx-auto">
+            Posez-moi si vous avez des questions, ici mon Double Digital est résponsable de reponre à votre questions 😊
+         </p>
+            
+            <div class="grid md:grid-cols-1 gap-8">
+                <!-- Chatbot Card -->
+                <div class="bg-white p-6 rounded-lg shadow-lg flex flex-col h-[500px]">
+                    <div class="border-b pb-4 mb-4 flex items-center justify-between">
+                        <h2 class="text-xl font-bold text-teal-700 flex items-center gap-2">
+                            <span>💬</span> Discutez avec mon Double Digital
+                        </h2>
+                    </div>
+                    
+                    <div id="chat-messages" class="flex-1 overflow-y-auto mb-4 p-2 bg-gray-50 rounded-lg flex flex-col gap-2">
+                        <!-- Initial Message -->
+                        <div class="chat-bubble chat-ai">
+                            Bonjour ! Je suis l'assistant virtuel de Murtaza. Posez-moi des questions sur mon expérience, mes compétences techniques ou ma formation.
+                        </div>
+                    </div>
+                    
+                    <div class="relative">
+                        <form id="chat-form" class="flex gap-2">
+                            <input type="text" id="chat-input" 
+                                class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition"
+                                placeholder="Posez une question (ex: Connais-tu React ?)...">
+                            <button type="submit" 
+                                class="bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-lg transition duration-300 flex items-center justify-center min-w-[50px]">
+                                ➤
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+               </div>
+        </section>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Navigation Logic ---
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sections = document.querySelectorAll('.content-section');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    const targetId = link.dataset.target;
+                    
+                    navLinks.forEach(nav => nav.classList.remove('active-nav'));
+                    link.classList.add('active-nav');
+
+                    sections.forEach(section => {
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        } else {
+                            section.classList.remove('active');
+                        }
+                    });
+                });
+            });
+
+            // --- Chart & Skills Logic ---
+            const allSkills = {
+                frontend: [
+                    { name: 'HTML', level: 90 },
+                    { name: 'CSS', level: 85 },
+                    { name: 'JavaScript', level: 80 },
+                    { name: 'React', level: 70 },
+                    { name: 'Bootstrap', level: 75 },
+                    { name: 'Tailwind', level: 75 },
+                ],
+                backend: [
+                    { name: 'Python', level: 80 },
+                    { name: 'Flask', level: 70 },
+                    { name: 'Jinja', level: 65 },
+                    { name: 'My Sql', level: 60 },
+                    { name: 'NoSql', level: 55 },
+                ],
+                langages: [
+                    { name: 'JavaScript', level: 80 },
+                    { name: 'Python', level: 80 },
+                    { name: 'C', level: 50 },
+                    { name: 'C++', level: 50 },
+                ],
+                outils: [
+                    { name: 'Figma', level: 70 },
+                    { name: 'Adobe XD', level: 65 },
+                    { name: 'Canva', level: 75 },
+                    { name: 'Git', level: 85 },
+                    { name: 'GitHub', level: 85 },
+                    { name: 'VS Code', level: 90 },
+                    { name: 'Node.js', level: 60 },
+                ],
+                systemes: [
+                    { name: 'Windows', level: 95 },
+                    { name: 'Linux', level: 75 },
+                    { name: 'MacOS', level: 65 },
+                ]
+            };
+
+            // CV DATA CONTEXT FOR AI
+            const cvContext = `
+            NOM: Murtaza FETRAT
+            TITRE: STAGE DÉVELOPPEUR WEB (16 mars au 18 juin 2026)
+            CONTACT: La Rochelle, France | +33 7 45 81 39 07 | murtazafetrat0012@gmail.com
+            PROFIL: Développeur full-stack junior, 5+ ans exp info, 1+ an dev web. Formation DWWB. Cherche stage.
+            FORMATION:
+            - Dev Web & Web Mobile, AFEC, La Rochelle (2025-en cours)
+            - Licence Génie Informatique, Kaboul Polytech (2014-2018)
+            COMPÉTENCES:
+            - Front: HTML, CSS, JS, React, Bootstrap, Tailwind
+            - Back: Python, Flask, Jinja, MySQL, NoSQL, C, C++
+            - Outils: Git, GitHub, VS Code, Node.js, Figma, Adobe XD
+            EXPÉRIENCES:
+            - Bénévole Polyvalent, Secours Populaire (Mars 2025-Présent): Accueil, travail équipe.
+            - Analyste/Concepteur, Fara Rayaneh Co, Iran (Mai 2023-Déc 2024): Analyse besoins, déploiement app, debug.
+            - Développeur Web, Hosh Zareen Co, Afghanistan (Août 2021-Jan 2023): App web (HTML/CSS/JS/Python), UX.
+            - Technicien Informatique (+4 ans): Maintenance systèmes réseaux, caméras, support.
+            `;
+
+            const skillFilters = document.querySelectorAll('.skill-filter-btn');
+            const skillsListContainer = document.getElementById('skills-list');
+            const ctx = document.getElementById('skillsChart').getContext('2d');
+            
+            const skillsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Niveau (auto-évalué)',
+                        data: [],
+                        backgroundColor: 'rgba(13, 148, 136, 0.6)',
+                        borderColor: 'rgba(13, 148, 136, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { beginAtZero: true, max: 100 }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) { return ` ${context.label}: ${context.raw}%`; }
+                            }
+                        }
+                    }
+                }
+            });
+
+            function updateSkills(category = 'tous') {
+                let skillsToShow = [];
+                if (category === 'tous') {
+                    skillsToShow = [].concat(...Object.values(allSkills)
+                        .map(arr => arr.map(skill => skill.name)))
+                        .filter((value, index, self) => self.indexOf(value) === index)
+                        .map(name => {
+                            const allInstances = [].concat(...Object.values(allSkills)).filter(s => s.name === name);
+                            return allInstances.reduce((prev, current) => (prev.level > current.level) ? prev : current);
+                        });
+                } else {
+                    skillsToShow = allSkills[category] || [];
+                }
+                skillsToShow.sort((a, b) => b.level - a.level);
+
+                skillsChart.data.labels = skillsToShow.map(skill => skill.name);
+                skillsChart.data.datasets[0].data = skillsToShow.map(skill => skill.level);
+                skillsChart.update();
+
+                skillsListContainer.innerHTML = '';
+                if (skillsToShow.length === 0) {
+                    skillsListContainer.innerHTML = '<li>Aucune compétence dans cette catégorie.</li>';
+                } else {
+                    skillsToShow.forEach(skill => {
+                        const li = document.createElement('li');
+                        li.textContent = skill.name;
+                        skillsListContainer.appendChild(li);
+                    });
+                }
+            }
+
+            skillFilters.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const category = btn.dataset.category;
+                    skillFilters.forEach(b => b.classList.remove('active-filter'));
+                    btn.classList.add('active-filter');
+                    updateSkills(category);
+                });
+            });
+
+            updateSkills('tous');
+
+            // --- Job Tabs Logic ---
+            const jobTabs = document.querySelectorAll('.job-tab');
+            const jobDetails = document.querySelectorAll('.job-details');
+
+            jobTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const targetJob = tab.dataset.job;
+                    jobTabs.forEach(t => t.classList.remove('active-job'));
+                    tab.classList.add('active-job');
+                    jobDetails.forEach(detail => {
+                        if (detail.id === `job-${targetJob}`) {
+                            detail.classList.add('active-job-details');
+                        } else {
+                            detail.classList.remove('active-job-details');
+                        }
+                    });
+                });
+            });
+
+            // --- GEMINI API INTEGRATION ---
+            const apiKey = ""; // API Key injected by environment
+
+            async function callGemini(prompt, systemInstruction = "") {
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    systemInstruction: { parts: [{ text: systemInstruction }] }
+                };
+
+                try {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                    
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || "Désolé, je n'ai pas pu générer de réponse.";
+                } catch (error) {
+                    console.error("Gemini Error:", error);
+                    // Exponential backoff or user alert could go here, for now simple return
+                    return "Une erreur est survenue lors de la communication avec l'IA. Veuillez réessayer.";
+                }
+            }
+
+            // --- Chatbot Logic ---
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
+            const chatMessages = document.getElementById('chat-messages');
+
+            function addMessage(text, sender) {
+                const div = document.createElement('div');
+                div.className = `chat-bubble ${sender === 'user' ? 'chat-user' : 'chat-ai'}`;
+                
+                if (sender === 'ai') {
+                    // Use marked for markdown parsing in AI response
+                    div.innerHTML = marked.parse(text);
+                } else {
+                    div.textContent = text;
+                }
+                
+                chatMessages.appendChild(div);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                return div;
+            }
+
+            function addTypingIndicator() {
+                const div = document.createElement('div');
+                div.className = 'chat-bubble chat-ai typing-indicator';
+                div.innerHTML = '<span></span><span></span><span></span>';
+                chatMessages.appendChild(div);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                return div;
+            }
+
+            chatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const userText = chatInput.value.trim();
+                if (!userText) return;
+
+                addMessage(userText, 'user');
+                chatInput.value = '';
+                const loadingBubble = addTypingIndicator();
+
+                const systemPrompt = `Tu es l'assistant IA de Murtaza Fetrat. Tu réponds aux recruteurs en son nom de manière professionnelle, amicale et précise. Voici son CV : ${cvContext}. Réponds toujours en Français. Sois concis.`;
+                
+                const response = await callGemini(userText, systemPrompt);
+                
+                chatMessages.removeChild(loadingBubble);
+                addMessage(response, 'ai');
+            });
+
+            // --- Job Matcher Logic ---
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const jobDescriptionInput = document.getElementById('job-description');
+            const matcherInputArea = document.getElementById('matcher-input-area');
+            const matcherResultArea = document.getElementById('matcher-result-area');
+            const matcherContent = document.getElementById('matcher-content');
+            const resetMatcherBtn = document.getElementById('reset-matcher');
+
+            analyzeBtn.addEventListener('click', async () => {
+                const jd = jobDescriptionInput.value.trim();
+                if (!jd) {
+                    alert("Veuillez coller une description de poste d'abord.");
+                    return;
+                }
+
+                // UI Loading State
+                const originalBtnText = analyzeBtn.innerHTML;
+                analyzeBtn.innerHTML = '<span>Analyse en cours... ✨</span>';
+                analyzeBtn.disabled = true;
+
+                const systemPrompt = `Tu es un expert en recrutement. Ta tâche est de comparer le CV de Murtaza Fetrat (${cvContext}) avec une description de poste fournie.
+                
+                Génère une réponse structurée en Markdown avec :
+                1. Un Score de compatibilité (0-100%) affiché en GRAS et GRAND.
+                2. Une courte liste à puces des "Points Forts" de Murtaza pour ce poste spécifique.
+                3. Une courte "Lettre de Motivation" personnalisée que Murtaza pourrait envoyer, mettant en avant les compétences pertinentes.
+                `;
+
+                const response = await callGemini(`Voici la description du poste : ${jd}`, systemPrompt);
+
+                // UI Update
+                matcherContent.innerHTML = marked.parse(response);
+                matcherInputArea.classList.add('hidden');
+                matcherResultArea.classList.remove('hidden');
+                analyzeBtn.innerHTML = originalBtnText;
+                analyzeBtn.disabled = false;
+            });
+
+            resetMatcherBtn.addEventListener('click', () => {
+                matcherResultArea.classList.add('hidden');
+                matcherInputArea.classList.remove('hidden');
+                jobDescriptionInput.value = '';
+            });
+
+        });
+    </script>
+</body>
+</html>
